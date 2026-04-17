@@ -93,8 +93,8 @@ typedef struct
     uint8_t     client_id;
     uint16_t    intr_mask;
     uint8_t     cmd;
-    uint8_t     application_id;
     uint32_t    msg;
+    connect_status isConnected;
     wifi_credentials_t wifi_scan_result;
 } ipc_msg_t;
 

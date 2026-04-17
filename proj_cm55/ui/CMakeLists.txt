@@ -11,6 +11,7 @@ SET(SOURCES screens/ui_Screen1.c
     images/ui_img_cogwheel_png.c
     images/ui_img_netflix_png.c
     images/ui_img_settings_png.c
-    images/ui_img_refresh_png.c)
+    images/ui_img_refresh_png.c
+    images/ui_img_bin_png.c)
 
 add_library(ui ${SOURCES})

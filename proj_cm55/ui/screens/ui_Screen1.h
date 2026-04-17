@@ -89,10 +89,19 @@ extern lv_obj_t * ui_refeshWifi;
 extern lv_obj_t * ui_password;
 extern lv_obj_t * ui_passwordDisabled;
 extern lv_obj_t * ui_keyboard;
+extern void ui_event_wifiList(lv_event_t * e);
 extern lv_obj_t * ui_wifiList;
+extern lv_obj_t * ui_wifiCredential;
+extern void ui_event_connectBtn(lv_event_t * e);
+extern lv_obj_t * ui_connectBtn;
+extern lv_obj_t * ui_connectBtnLabel;
+extern void ui_event_deleteCredential(lv_event_t * e);
+extern lv_obj_t * ui_deleteCredential;
 extern lv_obj_t * ui_wifiRefresh;
 extern lv_obj_t * ui_scan;
 extern lv_obj_t * ui_refresh;
+extern lv_obj_t * ui_notification;
+extern lv_obj_t * ui_notificationLabel;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus

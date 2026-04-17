@@ -490,7 +490,6 @@ static void print_scan_result(cy_wcm_scan_result_t *result)
     queued_msg.client_id = CM55_IPC_PIPE_CLIENT_ID;
     queued_msg.intr_mask = CY_IPC_CYPIPE_INTR_MASK_EP1;
     queued_msg.cmd = WIFI_SCAN_LIST;
-    queued_msg.application_id = 0;
     queued_msg.msg = num_scan_result;
     memcpy(queued_msg.wifi_scan_result.ssid, result->SSID, sizeof(queued_msg.wifi_scan_result.ssid));
     queued_msg.wifi_scan_result.ssid[sizeof(queued_msg.wifi_scan_result.ssid) - 1U] = '\0';

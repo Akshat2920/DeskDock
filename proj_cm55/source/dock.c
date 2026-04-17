@@ -5,6 +5,9 @@ buttons buttonPressed;
 CY_SECTION_SHAREDMEM static ipc_msg_t cm55_msg;
 static volatile bool cm55_ipc_tx_in_flight = false;
 int idx = 0;
+wifi_credentials_t wifiCredential;
+wifi_credentials_t connectedCredential;
+connection_state_t isConnected={NOT_CONNECTED, NOT_CONNECTED};
 
 static void cm55_ipc_release_callback(void)
 {
@@ -123,6 +126,7 @@ void refreshWifiList(lv_event_t *e){
     lv_dropdown_clear_options(ui_wifiList);
     lv_dropdown_set_options(ui_wifiList, "Select Network");
     clear_wifi_ssid_security_table();
+    setDefaultStatus();
     cm55_msg.client_id = CM33_IPC_PIPE_CLIENT_ID;
     cm55_msg.intr_mask = CY_IPC_CYPIPE_INTR_MASK_EP2;
     cm55_msg.cmd = REFRESH_WIFI;
@@ -215,5 +219,225 @@ void print_wifi_ssid_security_table(void)
         {
             printf("SSID: %s, Security: %u\n", wifi_ssid_security_table[index].ssid, wifi_ssid_security_table[index].security);
         }
+    }
+}
+
+void enablePassword(){
+    lv_obj_add_flag(ui_passwordDisabled, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(ui_password, LV_OBJ_FLAG_HIDDEN);
+    lv_textarea_set_text(ui_password, "");
+    lv_keyboard_set_textarea(ui_keyboard, ui_password);
+}
+
+void disablePassword(){
+    lv_obj_clear_flag(ui_passwordDisabled, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_password, LV_OBJ_FLAG_HIDDEN);
+    lv_keyboard_set_textarea(ui_keyboard, NULL);
+}
+
+void enableButton(){
+    lv_label_set_text(ui_connectBtnLabel, "Connect");
+    lv_obj_clear_state(ui_connectBtn, LV_STATE_DISABLED);
+}
+
+void disableButton(){
+    lv_textarea_set_placeholder_text(ui_passwordDisabled, "CONNECTED");
+    lv_label_set_text(ui_connectBtnLabel, "Connected");
+    lv_obj_add_state(ui_connectBtn, LV_STATE_DISABLED);
+}
+
+void setDefaultStatus(){
+    char * wifiConnected;
+    if(isConnected.WiFi==CONNECTED) wifiConnected = "Connected";
+    else wifiConnected = "Not Connected";
+    char * clientConnected;
+    if(isConnected.Client==CONNECTED) clientConnected = "Connected";
+    else clientConnected = "Not Connected";
+    if(isConnected.WiFi==NOT_CONNECTED){
+        lv_label_set_text_fmt(ui_wifiCredential,
+                          "Security - N/A\n\nSSID - Not Connected\nWiFi Status   - Not Conected\nClient Status - Not Connected");
+    }
+    else{
+        //Convert client connectivity to string
+        char * clientConnected;
+        if(isConnected.Client==CONNECTED) clientConnected = "Connected";
+        else clientConnected = "Not Connected";
+        lv_label_set_text_fmt(ui_wifiCredential,
+                          "Security - N/A\n\nSSID - %s\nWiFi Status   - Connected\nClient Status - %s", 
+                          connectedCredential.ssid, clientConnected);
+    }
+    disableButton();
+    lv_textarea_set_placeholder_text(ui_passwordDisabled, "Select Network");
+    lv_label_set_text(ui_connectBtnLabel, "Connect");
+    disablePassword(); 
+}
+
+//Dummy connection
+void connectWifi(lv_event_t *e){
+    strcpy(connectedCredential.password, lv_textarea_get_text(ui_password));
+    if(wifiCredential.security!=0 && strlen(connectedCredential.password)<1){
+        lv_label_set_text(ui_notificationLabel, "Please enter password");
+        ShowNotification_Animation(ui_notification, 0);
+        updateWifiCredential(e);
+        return;
+    }
+    if(isConnected.WiFi==CONNECTED) disconnectWifi(e);
+    connectedCredential = wifiCredential;
+    strcpy(connectedCredential.password, lv_textarea_get_text(ui_password));
+    isConnected.WiFi = CONNECTED;
+    lv_obj_clear_flag(ui_deleteCredential, LV_OBJ_FLAG_HIDDEN);
+    disableButton();
+    disablePassword();
+    lv_label_set_text(ui_notificationLabel, "Wifi Connected");
+    ShowNotification_Animation(ui_notification, 0);
+    updateWifiCredential(e);
+}
+
+//Dummy disconnection
+void disconnectWifi(lv_event_t *e){
+    isConnected.WiFi = NOT_CONNECTED;
+    isConnected.Client = NOT_CONNECTED;
+    lv_obj_add_flag(ui_deleteCredential, LV_OBJ_FLAG_HIDDEN);
+    // enableButton();
+    // enablePassword();
+    lv_label_set_text(ui_notificationLabel, "Wifi Disconnected");
+    ShowNotification_Animation(ui_notification, 0);
+    updateWifiCredential(e);
+}
+
+void updateWifiCredential(lv_event_t *e){
+    //Check of a valid network is selected
+    if(lv_dropdown_get_selected(ui_wifiList)==0){
+        setDefaultStatus();
+        return;           
+    }
+
+    //Set the selected SSID and security type in UI
+    lv_dropdown_get_selected_str(ui_wifiList, wifiCredential.ssid, sizeof(wifiCredential.ssid));
+    wifiCredential.security = wifi_ssid_security_table[lv_dropdown_get_selected(ui_wifiList)-1].security;
+
+    //Disable the password textarea for open security
+    if(wifiCredential.security==CY_WCM_SECURITY_OPEN){
+        lv_textarea_set_placeholder_text(ui_passwordDisabled, "Open Security");
+        disablePassword();
+    }
+    else{
+        enablePassword();
+    }
+
+    //Disable password and connect button when WiFi is connected
+    if(isConnected.WiFi == CONNECTED && strcmp(connectedCredential.ssid, wifiCredential.ssid)==0){
+        disablePassword();
+        disableButton();
+    }
+    else{
+        enableButton();
+    }
+
+    //Convert security type to string
+    char* security_type_string;
+    switch (wifiCredential.security)
+    {
+        case CY_WCM_SECURITY_OPEN:
+            security_type_string = SECURITY_OPEN;
+            break;
+        case CY_WCM_SECURITY_WEP_PSK:
+            security_type_string = SECURITY_WEP_PSK;
+            break;
+        case CY_WCM_SECURITY_WEP_SHARED:
+            security_type_string = SECURITY_WEP_SHARED;
+            break;
+        case CY_WCM_SECURITY_WPA_TKIP_PSK:
+            security_type_string = SECURITY_WEP_TKIP_PSK;
+            break;
+        case CY_WCM_SECURITY_WPA_AES_PSK:
+            security_type_string = SECURITY_WPA_AES_PSK;
+            break;
+        case CY_WCM_SECURITY_WPA_MIXED_PSK:
+            security_type_string = SECURITY_WPA_MIXED_PSK;
+            break;
+        case CY_WCM_SECURITY_WPA2_AES_PSK:
+            security_type_string = SECURITY_WPA2_AES_PSK;
+            break;
+        case CY_WCM_SECURITY_WPA2_TKIP_PSK:
+            security_type_string = SECURITY_WPA2_TKIP_PSK;
+            break;
+        case CY_WCM_SECURITY_WPA2_MIXED_PSK:
+            security_type_string = SECURITY_WPA2_MIXED_PSK;
+            break;
+        case CY_WCM_SECURITY_WPA2_FBT_PSK:
+            security_type_string = SECURITY_WPA2_FBT_PSK;
+            break;
+        case CY_WCM_SECURITY_WPA3_SAE:
+            security_type_string = SECURITY_WPA3_SAE;
+            break;
+        case CY_WCM_SECURITY_WPA3_WPA2_PSK:
+            security_type_string = SECURITY_WPA3_WPA2_PSK;
+            break;
+        case CY_WCM_SECURITY_IBSS_OPEN:
+            security_type_string = SECURITY_IBSS_OPEN;
+            break;
+        case CY_WCM_SECURITY_WPS_SECURE:
+            security_type_string = SECURITY_WPS_SECURE;
+            break;
+        case CY_WCM_SECURITY_UNKNOWN:
+            security_type_string = SECURITY_UNKNOWN;
+            break;
+        case CY_WCM_SECURITY_WPA2_WPA_AES_PSK:
+            security_type_string = SECURITY_WPA2_WPA_AES_PSK;
+            break;
+        case CY_WCM_SECURITY_WPA2_WPA_MIXED_PSK:
+            security_type_string = SECURITY_WPA2_WPA_MIXED_PSK;
+            break;
+        case CY_WCM_SECURITY_WPA_TKIP_ENT:
+            security_type_string = SECURITY_WPA_TKIP_ENT;
+            break;
+        case CY_WCM_SECURITY_WPA_AES_ENT:
+            security_type_string = SECURITY_WPA_AES_ENT;
+            break;
+        case CY_WCM_SECURITY_WPA_MIXED_ENT:
+            security_type_string = SECURITY_WPA_MIXED_ENT;
+            break;
+        case CY_WCM_SECURITY_WPA2_TKIP_ENT:
+            security_type_string = SECURITY_WPA2_TKIP_ENT;
+            break;
+        case CY_WCM_SECURITY_WPA2_AES_ENT:
+            security_type_string = SECURITY_WPA2_AES_ENT;
+            break;
+        case CY_WCM_SECURITY_WPA2_MIXED_ENT:
+            security_type_string = SECURITY_WPA2_MIXED_ENT;
+            break;
+        case CY_WCM_SECURITY_WPA2_FBT_ENT:
+            security_type_string = SECURITY_WPA2_FBT_ENT;
+            break;
+        default:
+            security_type_string = SECURITY_UNKNOWN;
+            break;
+    }
+
+    // //Convert wifi connectivity status to string
+    // char * wifiConnected;
+    // if(isConnected.WiFi==CONNECTED) wifiConnected = "Connected";
+    // else wifiConnected = "Not Connected";
+
+    //Convert client connectivity to string
+    char * clientConnected;
+    if(isConnected.Client==CONNECTED) clientConnected = "Connected";
+    else clientConnected = "Not Connected";
+
+    //Update the UI
+    if(isConnected.WiFi==NOT_CONNECTED){
+        lv_label_set_text_fmt(ui_wifiCredential,
+                          "Security - %s\n\nSSID - Not Connected\nWiFi Status   - Not Conected\nClient Status - Not Connected", 
+                          security_type_string);
+    }
+    else{
+        //Convert client connectivity to string
+        char * clientConnected;
+        if(isConnected.Client==CONNECTED) clientConnected = "Connected";
+        else clientConnected = "Not Connected";
+        lv_label_set_text_fmt(ui_wifiCredential,
+                          "Security - %s\n\nSSID - %s\nWiFi Status   - Connected\nClient Status - %s", 
+                          security_type_string, connectedCredential.ssid, clientConnected);
     }
 }

@@ -23,6 +23,9 @@ void openCustom3(lv_event_t * e);
 void buttonPressed_X(lv_event_t * e);
 void buttonPressed_O(lv_event_t * e);
 void refreshWifiList(lv_event_t * e);
+void updateWifiCredential(lv_event_t * e);
+void connectWifi(lv_event_t * e);
+void disconnectWifi(lv_event_t * e);
 
 #ifdef __cplusplus
 } /*extern "C"*/

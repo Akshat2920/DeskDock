@@ -61,7 +61,7 @@ static void ipc_receive_task(void *arg)
                     lv_obj_add_flag(ui_wifiRefresh, LV_OBJ_FLAG_HIDDEN);
                     lv_obj_remove_flag(ui_wifiConnect, LV_OBJ_FLAG_HIDDEN);
                     lv_unlock();
-                    print_wifi_ssid_security_table();
+                    //print_wifi_ssid_security_table();
 
                     break;
                 default:

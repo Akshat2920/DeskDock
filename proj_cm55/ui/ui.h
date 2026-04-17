@@ -24,6 +24,7 @@ extern "C" {
 
 extern lv_anim_t * buttonUp_Animation(lv_obj_t * TargetObject, int delay);
 extern lv_anim_t * buttonDown_Animation(lv_obj_t * TargetObject, int delay);
+extern lv_anim_t * ShowNotification_Animation(lv_obj_t * TargetObject, int delay);
 
 // EVENTS
 
@@ -40,6 +41,7 @@ LV_IMG_DECLARE(ui_img_cogwheel_png);    // assets/cogwheel.png
 LV_IMG_DECLARE(ui_img_netflix_png);    // assets/netflix.png
 LV_IMG_DECLARE(ui_img_settings_png);    // assets/settings.png
 LV_IMG_DECLARE(ui_img_refresh_png);    // assets/refresh.png
+LV_IMG_DECLARE(ui_img_bin_png);    // assets/bin.png
 
 // UI INIT
 void ui_init(void);
